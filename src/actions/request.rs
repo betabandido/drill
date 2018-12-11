@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::Read;
+use std::thread;
 
 use yaml_rust::Yaml;
 use colored::*;
@@ -25,6 +26,7 @@ pub struct Request {
   name: String,
   url: String,
   time: f64,
+  slow: u64,
   method: String,
   headers: HashMap<String, String>,
   pub body: Option<String>,
@@ -40,6 +42,7 @@ impl Request {
   pub fn new(item: &Yaml, with_item: Option<Yaml>) -> Request {
     let reference: Option<&str> = item["assign"].as_str();
     let body: Option<&str> = item["request"]["body"].as_str();
+    let slow: Option<i64> = item["request"]["slow"].as_i64();
     let method;
 
     let mut headers = HashMap::new();
@@ -64,6 +67,7 @@ impl Request {
       name: item["name"].as_str().unwrap().to_string(),
       url: item["request"]["url"].as_str().unwrap().to_string(),
       time: 0.0,
+      slow: slow.unwrap_or(0) as u64,
       method: method,
       headers: headers,
       body: body.map(str::to_string),
@@ -142,6 +146,10 @@ impl Request {
 
     let response = response_result.unwrap();
     let duration_ms = (time::precise_time_s() - begin) * 1000.0;
+
+    if self.slow > 0 {
+      thread::sleep(std::time::Duration::new(self.slow as u64, 0));
+    }
 
     let status_text = if response.status.is_server_error() {
       response.status.to_string().red()
