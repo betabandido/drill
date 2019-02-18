@@ -113,6 +113,9 @@ fn show_stats (list_reports: &Vec<Vec<Report>>, stats_option: bool, duration: f6
     (sorted[durlen / 2] + sorted[durlen / 2 + 1]) / 2f64
   };
 
+  let pct90 = percentile(90, &sorted);
+  let pct99 = percentile(99, &sorted);
+
   let total_requests = list_reports.concat().len();
   let successful_requests = group_by_status.entry(2).or_insert(Vec::new()).len();
   let failed_requests = total_requests - successful_requests;
@@ -128,6 +131,16 @@ fn show_stats (list_reports: &Vec<Vec<Report>>, stats_option: bool, duration: f6
   println!("{} {}{}", "Median time per request".yellow(), median.round().to_string().purple(), "ms".purple());
   println!("{} {}{}", "Average time per request".yellow(), mean.round().to_string().purple(), "ms".purple());
   println!("{} {}{}", "Sample standard deviation".yellow(), stdev.round().to_string().purple(), "ms".purple());
+  println!("{} {}{}", "Percentile 90th".yellow(), pct90.round().to_string().purple(), "ms".purple());
+  println!("{} {}{}", "Percentile 99th".yellow(), pct99.round().to_string().purple(), "ms".purple());
+}
+
+fn percentile (p: u8, sorted_durations: &Vec<f64>) -> f64 {
+  assert!(p > 0 && p <= 100);
+
+  let ordinal_rank: f64 = (p as f64) / 100.0 * (sorted_durations.len() as f64);
+  let ordinal_rank = ordinal_rank.ceil() as usize;
+  return sorted_durations[ordinal_rank - 1];
 }
 
 fn compare_benchmark (list_reports: &Vec<Vec<Report>>, compare_path_option: Option<&str>, threshold_option: Option<&str>) {
